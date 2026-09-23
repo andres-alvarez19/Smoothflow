@@ -1,42 +1,41 @@
-name: Verify Foro 4 BDD
+name: Foro 4 BDD
 
 on:
   push:
-    branches: [foro4-bdd]
+    branches: [main, foro4-bdd]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   bdd:
     runs-on: ubuntu-latest
 
     services:
-      postgres:
+      postgres-bdd:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: smoothflow
           POSTGRES_PASSWORD: changeme
-          POSTGRES_DB: smoothflow
+          POSTGRES_DB: smoothflow_bdd
         ports:
-          - 5432:5432
+          - 5434:5432
         options: >-
-          --health-cmd "pg_isready -U smoothflow -d smoothflow"
+          --health-cmd "pg_isready -U smoothflow -d smoothflow_bdd"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
 
     env:
-      DATABASE_URL: postgresql://smoothflow:changeme@localhost:5432/smoothflow
+      BDD_DATABASE_URL: postgresql://smoothflow:changeme@localhost:5434/smoothflow_bdd
       ENCRYPTION_KEY: dev-only-change-in-production-32b
       SESSION_SECRET: bdd-ci-session-secret
-      NODE_ENV: test
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: foro4-bdd
 
       - uses: pnpm/action-setup@v4
         with:
@@ -47,19 +46,8 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Install dependencies and refresh lockfile
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Commit generated pnpm lockfile when needed
-        shell: bash
-        run: |
-          if ! git diff --quiet -- pnpm-lock.yaml; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add pnpm-lock.yaml
-            git commit -m "build(bdd): refresh pnpm lockfile [skip ci]"
-            git push
-          fi
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Unit tests
         run: pnpm test
