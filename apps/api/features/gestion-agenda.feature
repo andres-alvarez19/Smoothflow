@@ -28,7 +28,7 @@ Característica: Gestión de agenda clínica por Secretaría
   @positivo
   Escenario: Modificar una cita hacia un nuevo bloque horario disponible
     Dado que existe la cita "C101" del paciente "P001" con el médico "Médico A" en el bloque "A" a 8 días desde hoy a las "10:00"
-    Y el bloque "B" está disponible a 9 días desde hoy a las "11:00"
+    Y que el bloque "B" está disponible a 9 días desde hoy a las "11:00"
     Cuando la secretaria modifica la cita "C101" hacia el bloque "B"
     Entonces la cita "C101" queda registrada en el bloque "B"
     Y el bloque "A" queda disponible para nuevas reservas
@@ -46,7 +46,7 @@ Característica: Gestión de agenda clínica por Secretaría
   @negativo @agregado-foro4
   Escenario: Modificar una cita hacia un horario ocupado
     Dado que existe la cita "C202" del paciente "P001" con el médico "Médico A" en el bloque "A" a 11 días desde hoy a las "09:00"
-    Y el bloque "B" está ocupado por otra cita a 12 días desde hoy a las "11:00"
+    Y que el bloque "B" está ocupado por otra cita a 12 días desde hoy a las "11:00"
     Cuando la secretaria intenta modificar la cita "C202" hacia el bloque "B"
     Entonces el sistema rechaza la operación por indisponibilidad
     Y la cita "C202" permanece en el bloque "A"
