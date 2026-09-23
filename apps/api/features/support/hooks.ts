@@ -12,6 +12,12 @@ import {
 import type { SmoothFlowWorld } from "./world.js";
 
 BeforeAll(async () => {
+  const databaseUrl = process.env.DATABASE_URL ?? "";
+  if (process.env.NODE_ENV !== "test" || !databaseUrl.includes("smoothflow_bdd")) {
+    throw new Error(
+      "Las pruebas BDD requieren NODE_ENV=test y una base dedicada smoothflow_bdd para evitar borrar datos de desarrollo.",
+    );
+  }
   await runMigrations();
 });
 
