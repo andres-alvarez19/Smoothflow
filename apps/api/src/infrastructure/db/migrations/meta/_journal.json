@@ -15,6 +15,13 @@
       "when": 1783368257348,
       "tag": "0001_wonderful_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790118000000,
+      "tag": "0002_forum4_no_double_booking",
+      "breakpoints": true
     }
   ]
 }
