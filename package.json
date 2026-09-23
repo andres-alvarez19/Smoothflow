@@ -7,7 +7,8 @@
     "typecheck": "pnpm -r run typecheck",
     "docker:up": "docker compose up --build -d",
     "docker:down": "docker compose down",
-    "test": "pnpm --filter @smoothflow/api --filter @smoothflow/shared test"
+    "test": "pnpm --filter @smoothflow/api --filter @smoothflow/shared test",
+    "test:bdd": "pnpm --filter @smoothflow/api test:bdd"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
