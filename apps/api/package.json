@@ -14,7 +14,7 @@
     "seed": "tsx src/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:bdd": "pnpm --filter @smoothflow/shared build && node --import tsx ./node_modules/@cucumber/cucumber/bin/cucumber.js --import 'features/**/*.ts' 'features/**/*.feature'"
+    "test:bdd": "pnpm --filter @smoothflow/shared build && node scripts/run-bdd.mjs"
   },
   "dependencies": {
     "@smoothflow/shared": "workspace:*",
