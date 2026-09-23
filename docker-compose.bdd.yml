@@ -1,0 +1,15 @@
+services:
+  postgres-bdd:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smoothflow
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_DB: smoothflow_bdd
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata_bdd:/var/lib/postgresql/data
+
+volumes:
+  pgdata_bdd:

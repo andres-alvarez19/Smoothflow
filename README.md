@@ -100,6 +100,21 @@ Esto levanta tres servicios: `postgres` (puerto 5432), `api` (puerto 3000) y `we
 
 Para producción en la VPS se usa `docker-compose.prod.yml`, que consume las imágenes publicadas en GHCR (`ghcr.io/<owner>/smoothflow-api` y `smoothflow-web`).
 
+## Pruebas BDD — Foro 4
+
+La automatización BDD de **UC5 — Gestionar Agenda** usa Cucumber.js, glue code TypeScript y PostgreSQL real.
+
+Se ejecutan **5 escenarios**: 2 positivos, 2 negativos y 1 de frontera. Para cumplir la distribución solicitada en Foro 4, el escenario negativo del Foro 3 que agrupaba creación/modificación sobre un horario no disponible se separó y **se agregó explícitamente el escenario negativo “Modificar una cita hacia un horario ocupado”**.
+
+```bash
+pnpm install
+pnpm bdd:db:up
+pnpm test:bdd
+pnpm bdd:db:down
+```
+
+La base BDD está aislada en `smoothflow_bdd` (puerto 5434); no reutiliza la base normal de desarrollo. La documentación completa, trazabilidad y guía para el video están en [docs/Foro4_BDD.md](docs/Foro4_BDD.md).
+
 ## Deploy (CI/CD)
 
 El pipeline de GitHub Actions (`.github/workflows/deploy.yml`) se ejecuta en cada push a `main`:

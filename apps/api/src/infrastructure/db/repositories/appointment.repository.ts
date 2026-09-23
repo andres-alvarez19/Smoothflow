@@ -11,6 +11,7 @@ import {
   clinics,
 } from "../schema.js";
 import type { AppointmentEntity } from "../../../domain/entities.js";
+import { ConflictError } from "../../../domain/errors.js";
 import type {
   AppointmentRepository,
   AppointmentListFilters,
@@ -21,6 +22,22 @@ import type {
 } from "../../../domain/ports/appointment.repository.js";
 
 type AppointmentRow = typeof appointments.$inferSelect;
+
+function rethrowBookingWriteError(error: unknown): never {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : "";
+
+  // 23P01 = exclusion_violation. La restricción PostgreSQL protege
+  // la agenda incluso si dos solicitudes superan simultáneamente
+  // la verificación previa de disponibilidad.
+  if (code === "23P01") {
+    throw new ConflictError("El horario ya está ocupado o bloqueado", "DOUBLE_BOOKING");
+  }
+
+  throw error;
+}
 
 function toEntity(row: AppointmentRow): AppointmentEntity {
   return {
@@ -143,43 +160,51 @@ export const appointmentRepository: AppointmentRepository = {
   },
 
   async create(data: NewAppointment): Promise<AppointmentEntity> {
-    const [created] = await db
-      .insert(appointments)
-      .values({
-        clinicId: data.clinicId,
-        patientId: data.patientId ?? null,
-        practitionerId: data.practitionerId,
-        status: data.status,
-        startAt: data.startAt,
-        endAt: data.endAt,
-        notes: data.notes ?? null,
-        createdByUserId: data.createdByUserId ?? null,
-      })
-      .returning();
-    return toEntity(created);
+    try {
+      const [created] = await db
+        .insert(appointments)
+        .values({
+          clinicId: data.clinicId,
+          patientId: data.patientId ?? null,
+          practitionerId: data.practitionerId,
+          status: data.status,
+          startAt: data.startAt,
+          endAt: data.endAt,
+          notes: data.notes ?? null,
+          createdByUserId: data.createdByUserId ?? null,
+        })
+        .returning();
+      return toEntity(created);
+    } catch (error) {
+      return rethrowBookingWriteError(error);
+    }
   },
 
   async update(id: string, changes: AppointmentChanges): Promise<AppointmentEntity> {
     const { pendingReschedule, ...rest } = changes;
-    const [updated] = await db
-      .update(appointments)
-      .set({
-        ...rest,
-        ...(pendingReschedule !== undefined
-          ? {
-              pendingReschedule: pendingReschedule
-                ? {
-                    startAt: pendingReschedule.startAt.toISOString(),
-                    endAt: pendingReschedule.endAt.toISOString(),
-                  }
-                : null,
-            }
-          : {}),
-        updatedAt: new Date(),
-      })
-      .where(eq(appointments.id, id))
-      .returning();
-    return toEntity(updated);
+    try {
+      const [updated] = await db
+        .update(appointments)
+        .set({
+          ...rest,
+          ...(pendingReschedule !== undefined
+            ? {
+                pendingReschedule: pendingReschedule
+                  ? {
+                      startAt: pendingReschedule.startAt.toISOString(),
+                      endAt: pendingReschedule.endAt.toISOString(),
+                    }
+                  : null,
+              }
+            : {}),
+          updatedAt: new Date(),
+        })
+        .where(eq(appointments.id, id))
+        .returning();
+      return toEntity(updated);
+    } catch (error) {
+      return rethrowBookingWriteError(error);
+    }
   },
 
   async addEvent(event: NewAppointmentEvent): Promise<void> {

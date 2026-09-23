@@ -1,0 +1,59 @@
+name: Foro 4 BDD
+
+on:
+  push:
+    branches: [main, foro4-bdd]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bdd:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres-bdd:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: smoothflow
+          POSTGRES_PASSWORD: changeme
+          POSTGRES_DB: smoothflow_bdd
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U smoothflow -d smoothflow_bdd"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      BDD_DATABASE_URL: postgresql://smoothflow:changeme@localhost:5434/smoothflow_bdd
+      ENCRYPTION_KEY: dev-only-change-in-production-32b
+      SESSION_SECRET: bdd-ci-session-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Foro 4 BDD scenarios
+        run: pnpm test:bdd

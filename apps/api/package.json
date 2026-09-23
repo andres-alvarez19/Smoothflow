@@ -13,7 +13,8 @@
     "db:push": "drizzle-kit push",
     "seed": "tsx src/seed.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:bdd": "pnpm --filter @smoothflow/shared build && node scripts/run-bdd.mjs"
   },
   "dependencies": {
     "@smoothflow/shared": "workspace:*",
@@ -33,6 +34,7 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "12.8.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/cookie-parser": "^1.4.8",
