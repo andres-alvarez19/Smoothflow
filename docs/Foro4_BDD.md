@@ -69,6 +69,115 @@ La implementación se realiza en etapas separadas:
 5. **Ajuste funcional:** se agrega una restricción transaccional a nivel PostgreSQL para impedir solapamientos activos incluso ante dos solicitudes simultáneas.
 6. **Escenarios en verde:** los cinco escenarios deben finalizar correctamente.
 
-## Ejecución
+## Ejecución local
 
-La sección de comandos y evidencia de ejecución se completa junto con la configuración de Cucumber y CI en los commits siguientes de esta actividad.
+Las pruebas usan una base PostgreSQL **dedicada** llamada `smoothflow_bdd` en el puerto `5434`. Los hooks de Cucumber rechazan la ejecución si no se detecta el entorno de pruebas, porque antes de cada escenario se limpian los fixtures.
+
+Desde la raíz del repositorio:
+
+```bash
+pnpm install
+pnpm bdd:db:up
+pnpm test:bdd
+pnpm bdd:db:down
+```
+
+El comando `pnpm test:bdd`:
+
+1. compila `@smoothflow/shared`;
+2. ejecuta Cucumber.js con TypeScript mediante `tsx`;
+3. aplica las migraciones reales de PostgreSQL;
+4. prepara datos aislados por escenario;
+5. ejecuta los cinco escenarios contra los casos de uso y repositorios reales.
+
+También puede reemplazarse la URL de la base BDD:
+
+```bash
+BDD_DATABASE_URL=postgresql://usuario:clave@host:puerto/smoothflow_bdd pnpm test:bdd
+```
+
+## Resultado verificado
+
+La ejecución automatizada en GitHub Actions fue validada correctamente con PostgreSQL 16:
+
+```text
+5 scenarios (5 passed)
+46 steps (46 passed)
+```
+
+Además, en la misma ejecución finalizaron correctamente:
+
+- pruebas unitarias existentes;
+- typecheck del monorepo;
+- instalación con `pnpm install --frozen-lockfile`;
+- los cinco escenarios BDD.
+
+## Glue code
+
+Los vínculos Given–When–Then están implementados en:
+
+```text
+apps/api/features/step-definitions/gestion-agenda.steps.ts
+```
+
+El estado compartido de Cucumber está en:
+
+```text
+apps/api/features/support/world.ts
+```
+
+y la preparación/limpieza de PostgreSQL en:
+
+```text
+apps/api/features/support/hooks.ts
+```
+
+La característica Gherkin está en:
+
+```text
+apps/api/features/gestion-agenda.feature
+```
+
+## Ajuste funcional descubierto por BDD
+
+El escenario de frontera exige que dos solicitudes simultáneas sobre el mismo bloque no produzcan dos citas confirmadas. La implementación original verificaba primero la disponibilidad y después realizaba el `INSERT`. Bajo concurrencia, ambas solicitudes podían superar la consulta previa antes de que alguna persistiera la cita.
+
+Se agregó la migración:
+
+```text
+apps/api/src/infrastructure/db/migrations/0002_forum4_no_double_booking.sql
+```
+
+Esta incorpora una restricción `EXCLUDE USING gist` sobre clínica, médico y rango temporal para impedir solapamientos de citas activas directamente en PostgreSQL. Si dos operaciones compiten, una queda persistida y la otra genera la violación `23P01`, que el repositorio traduce al error de dominio:
+
+```text
+ConflictError
+code: DOUBLE_BOOKING
+```
+
+De esta forma la prevención de doble reserva no depende únicamente de una consulta previa y se mantiene correcta ante concurrencia real.
+
+## Evidencia recomendada para el video
+
+Para el video de entrega basta con mostrar:
+
+1. `apps/api/features/gestion-agenda.feature`, destacando los tags `@positivo`, `@negativo` y `@frontera`.
+2. La nota `@agregado-foro4` del escenario **Modificar una cita hacia un horario ocupado**, explicando que se agregó para obtener los 2 negativos requeridos.
+3. `gestion-agenda.steps.ts` para mostrar el glue code.
+4. La migración `0002_forum4_no_double_booking.sql` como ajuste de funcionalidad descubierto por el caso de frontera.
+5. Ejecutar:
+   ```bash
+   pnpm bdd:db:up
+   pnpm test:bdd
+   ```
+6. Mostrar al final:
+   ```text
+   5 scenarios (5 passed)
+   46 steps (46 passed)
+   ```
+7. Finalizar con:
+   ```bash
+   pnpm bdd:db:down
+   ```
+
+La workflow `.github/workflows/foro4-verify.yml` deja además evidencia reproducible de la ejecución automática.
